@@ -6,7 +6,6 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const createError = require('http-errors');
-const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const path = require('path');
 const { evaluateRisk } = require('./models/riskCriteria');

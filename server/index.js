@@ -4,9 +4,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const bodyParser = require('body-parser');
-const createError = require('http-errors');
-const logger = require('morgan');
 const path = require('path');
 const { evaluateRisk } = require('./models/riskCriteria');
 

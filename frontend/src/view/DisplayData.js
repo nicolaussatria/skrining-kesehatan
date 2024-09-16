@@ -7,7 +7,7 @@ const DisplayData = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const result = await axios.get('http://localhost:5001/api/users');
+        const result = await axios.get('https://skrining-kesehatan-be-git-main-nicos-projects-0cde7cf6.vercel.app/api/users');
         setUsers(result.data);
       } catch (error) {
         console.error('Error fetching users:', error);

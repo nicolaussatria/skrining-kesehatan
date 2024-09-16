@@ -27,8 +27,6 @@ app.use((req, res, next) => {
 
 // Set up middleware for parsing JSON, cookies, and logging
 app.use(cors());
-app.use(bodyParser.json());
-app.use(cookieParser());
 app.use(logger('dev'));
 
 // Set Context Middleware

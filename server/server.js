@@ -1,5 +1,6 @@
 // backend/server.js
 const express = require('express');
+const mongoose = require('mongoose');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const { evaluateRisk } = require('./models/riskCriteria');
@@ -7,6 +8,17 @@ const { evaluateRisk } = require('./models/riskCriteria');
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
+
+// Replace with your actual MongoDB connection string
+const MONGO_ATLAS_URL = process.env.MONGO_ATLAS_URL || 'mongodb+srv://nicolaussatria:gerobakijo333@cluster.gnwjw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster';
+
+// Connect to MongoDB
+mongoose.connect(MONGO_ATLAS_URL, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+  .then(() => console.log('Connected to MongoDB Atlas'))
+  .catch((error) => console.error('Error connecting to MongoDB:', error));
 
 // Mock data stores
 let users = [];
@@ -161,7 +173,7 @@ let questions = [
   },
 ];
 
-// Route to add a new user (mocked)
+// Routes
 app.post('/api/users', (req, res) => {
   console.log('Received data:', req.body);
   const { bpjsNumber, weight, height, education, familyContact, healthQuestions } = req.body;
@@ -184,12 +196,10 @@ app.post('/api/users', (req, res) => {
   res.json({ success: true, userId: newUser.id });
 });
 
-// Route to get all users (mocked)
 app.get('/api/users', (req, res) => {
   res.json(users);
 });
 
-// Route to get a specific user by ID (mocked)
 app.get('/api/users/:id', (req, res) => {
   const user = users.find((u) => u.id == req.params.id);
   if (user) {
@@ -199,7 +209,6 @@ app.get('/api/users/:id', (req, res) => {
   }
 });
 
-// Route to get questions (mocked)
 app.get('/api/questions', (req, res) => {
   res.json(questions);
 });
@@ -209,3 +218,6 @@ const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+
+

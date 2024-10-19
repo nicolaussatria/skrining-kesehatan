@@ -40,7 +40,7 @@ const Home = () => {
   // Basic validation before showing consent
   const validateForm = () => {
     let formErrors = {};
-    if (!formData.bpjsNumber) formErrors.bpjsNumber = 'BPJS Number is required.';
+    // if (!formData.bpjsNumber) formErrors.bpjsNumber = 'BPJS Number is required.';
     if (!formData.weight) formErrors.weight = 'Weight is required.';
     if (!formData.height) formErrors.height = 'Height is required.';
     if (!formData.education) formErrors.education = 'Education is required.';
@@ -73,7 +73,7 @@ const Home = () => {
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-lg">
         <h2 className="text-2xl font-semibold mb-6">Data Diri</h2>
         <form>
-          <div className="mb-4">
+          {/* <div className="mb-4">
             <label className="block text-gray-700 font-bold mb-2" htmlFor="bpjsNumber">
               No Kartu BPJS
             </label>
@@ -86,13 +86,14 @@ const Home = () => {
               className="w-full p-2 border border-gray-300 rounded"
             />
             {errors.bpjsNumber && <p className="text-red-500 text-sm">{errors.bpjsNumber}</p>}
-          </div>
+          </div> */}
           <div className="flex mb-4">
             <div className="w-1/2 mr-2">
               <label className="block text-gray-700 font-bold mb-2" htmlFor="weight">
                 Berat Badan (Kg)
               </label>
               <input
+              type="number"
                 id="weight"
                 name="weight"
                 value={formData.weight}
@@ -107,6 +108,7 @@ const Home = () => {
                 Tinggi Badan (Cm)
               </label>
               <input
+              type="number"
                 id="height"
                 name="height"
                 value={formData.height}
@@ -173,6 +175,7 @@ const Home = () => {
                 No Telepon/HP
               </label>
               <input
+              type="number"
                 id="familyContact.phone"
                 name="familyContact.phone"
                 value={formData.familyContact.phone}

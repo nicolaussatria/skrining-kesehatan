@@ -1,10 +1,6 @@
 const mongoose = require('mongoose');
 const Question = require('./Questions');
 
-mongoose.connect('mongodb://127.0.0.1:27017/healthscreening', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
 
 const questions = [
     // Pertanyaan Klinis Kondisi Pasien

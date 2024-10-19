@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 const { evaluateRisk } = require('./models/riskCriteria');
-
+const createError = require('http-errors'); 
 const app = express();
 
 // CORS Configuration
@@ -24,10 +24,10 @@ app.use((req, res, next) => {
   else next();
 });
 
-// Set up middleware for parsing JSON, cookies, and logging
+// Middleware
 app.use(cors());
+app.use(express.json()); // For parsing JSON requests
 
-// Set Context Middleware
 const setContext = (req, res, next) => {
   if (!req.context) req.context = {};
   next();
@@ -45,9 +45,10 @@ mongoose.connect(MONGO_ATLAS_URL, {
 
 // Mock data stores
 let users = [];
+
 let questions = [
   {
-    questionText: 'Berapakah hasil tekanan darah ibu terakhir yang diukur oleh petugas RS atau Puskesmas?',
+    questionText: 'Berapakah hasil tekanan darah ibu terakhir yang di ukur oleh petugas RS atau Puskesmas? (hasil tekanan darah dapat di lihat pada buku KIA)',
     options: [],
     category: 'Pertanyaan Klinis Kondisi Pasien',
     type: 'input',

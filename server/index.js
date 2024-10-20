@@ -188,9 +188,9 @@ let questions = [
 // POST: Add a new user
 app.post('/api/users', (req, res) => {
   console.log('Received data:', req.body);
-  const { bpjsNumber, weight, height } = req.body;
+  const { weight, height } = req.body;
 
-  if (!bpjsNumber || !weight || !height) {
+  if ( !weight || !height) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 

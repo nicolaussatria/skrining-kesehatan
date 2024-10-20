@@ -5,7 +5,6 @@ import Consent from './Consent';
 const Home = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    bpjsNumber: '',
     weight: '',
     height: '',
     education: '',

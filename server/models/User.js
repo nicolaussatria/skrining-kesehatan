@@ -2,7 +2,6 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-  bpjsNumber: String,
   weight: Number,
   height: Number,
   education: String,

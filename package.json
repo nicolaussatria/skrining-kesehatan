@@ -3,5 +3,16 @@
     "ajv": "^8.17.1",
     "http": "^0.0.1-security",
     "mongodb": "^6.9.0"
-  }
+  },
+  "name": "healthscreening",
+  "version": "1.0.0",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "proxy": "https://skrining-kesehatan-be-git-main-nicos-projects-0cde7cf6.vercel.app/api/users"
 }

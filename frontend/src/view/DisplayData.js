@@ -48,7 +48,7 @@ const DisplayData = () => {
         {users.map((user, index) => (
           <div key={index} className="mb-4 p-4 border border-gray-300 rounded">
             <h3 className="text-lg font-semibold mb-2">User {index + 1}</h3>
-            <p><strong>BPJS Number:</strong> {user.bpjsNumber || 'N/A'}</p>
+         
             <p><strong>Weight:</strong> {user.weight || 'N/A'}</p>
             <p><strong>Height:</strong> {user.height || 'N/A'}</p>
             <p><strong>Education:</strong> {user.education || 'N/A'}</p>

@@ -6,7 +6,7 @@ export const useFormData = () => useContext(FormContext);
 
 export const FormProvider = ({ children }) => {
   const [formData, setFormData] = useState({
-    bpjsNumber: '',
+   
     weight: '',
     height: '',
     education: '',

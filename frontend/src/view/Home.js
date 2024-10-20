@@ -37,6 +37,8 @@ const Home = () => {
     }
   };
 
+  
+
   // Basic validation before showing consent
   const validateForm = () => {
     let formErrors = {};
@@ -52,10 +54,9 @@ const Home = () => {
 
   // Handle next button click
   const handleNext = () => {
-    if (validateForm()) {
-      setShowConsent(true);
-    }
+    navigate('/questions'); // Navigate to questions page
   };
+
 
   // Handle consent dialog close
   const handleConsentClose = () => {
@@ -211,3 +212,4 @@ const Home = () => {
 };
 
 export default Home;
+

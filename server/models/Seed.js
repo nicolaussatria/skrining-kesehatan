@@ -5,7 +5,7 @@ const Question = require('./Questions');
 const questions = [
     // Pertanyaan Klinis Kondisi Pasien
     {
-      questionText: 'Berapakah hasil tekanan darah ibu terakhir yang di ukur oleh petugas RS atau Puskesmas? (hasil tekanan darah dapat di lihat pada buku KIA)',
+      questionText: 'Berapakah hasil tekanan darah ibu terakhir yang di ukur oleh petugas RS atau Puskesmas ? (hasil tekanan darah dapat di lihat pada buku KIA)',
       options: [],
       category: 'Pertanyaan Klinis Kondisi Pasien',
       type: 'input',

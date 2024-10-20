@@ -1,38 +1,25 @@
 
+
 // backend/server.js
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const path = require('path');
-const { evaluateRisk } = require('./models/riskCriteria');
 const createError = require('http-errors'); 
 const app = express();
 
-// CORS Configuration
-const whitelist = ['*']; // You can specify specific domains if needed
-
-app.use((req, res, next) => {
-  const origin = req.get('referer');
-  const isWhitelisted = whitelist.find((w) => origin && origin.includes(w));
-  if (isWhitelisted) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
-    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,Content-Type,Authorization');
-    res.setHeader('Access-Control-Allow-Credentials', true);
-  }
-  if (req.method === 'OPTIONS') res.sendStatus(200);
-  else next();
-});
-
-// Middleware
-app.use(cors());
-app.use(express.json()); // For parsing JSON requests
-
-const setContext = (req, res, next) => {
-  if (!req.context) req.context = {};
-  next();
+// CORS Middleware
+const corsOptions = {
+  origin: '*', // Allow all origins during development
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true // Enable credentials if necessary
 };
-app.use(setContext);
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Handle preflight requests
+
+// Middleware to parse JSON requests
+app.use(express.json());
 
 // MongoDB Connection
 const MONGO_ATLAS_URL = process.env.MONGO_ATLAS_URL || 'mongodb+srv://nicolaussatria:gerobakijo333@cluster.gnwjw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster';
@@ -43,12 +30,11 @@ mongoose.connect(MONGO_ATLAS_URL, {
   .then(() => console.log('Connected to MongoDB Atlas'))
   .catch((error) => console.error('Error connecting to MongoDB:', error));
 
-// Mock data stores
+// Mock Data Storage
 let users = [];
-
 let questions = [
   {
-    questionText: 'Berapakah hasil tekanan darah ibu terakhir yang di ukur oleh petugas RS atau Puskesmas? (hasil tekanan darah dapat di lihat pada buku KIA)',
+    questionText: 'Berapakah hasil tekanan darah ibu terakhir yang di ukur oleh petugas RS atau Puskesmas ? (hasil tekanan darah dapat di lihat pada buku KIA)',
     options: [],
     category: 'Pertanyaan Klinis Kondisi Pasien',
     type: 'input',
@@ -197,62 +183,41 @@ let questions = [
   },
 ];
 
-// Routes for handling API requests
+// Routes
+
+// POST: Add a new user
 app.post('/api/users', (req, res) => {
   console.log('Received data:', req.body);
-  const { bpjsNumber, weight, height, education, familyContact, healthQuestions } = req.body;
-  const riskLevel = evaluateRisk(healthQuestions);
+  const { bpjsNumber, weight, height } = req.body;
+
+  if (!bpjsNumber || !weight || !height) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
 
   const newUser = {
     id: users.length + 1,
-    bpjsNumber,
-    weight,
-    height,
-    education,
-    familyContact,
-    healthQuestions,
-    riskLevel,
+    ...req.body,
     createdAt: new Date(),
-    updatedAt: new Date(),
   };
 
   users.push(newUser);
-  res.json({ success: true, userId: newUser.id });
+  res.status(200).json({ success: true, userId: newUser.id });
 });
 
-app.get('/api/users', (req, res) => {
-  res.json(users);
-});
+// GET: Retrieve all users
+app.get('/api/users', (req, res) => res.json(users));
 
-app.get('/api/users/:id', (req, res) => {
-  const user = users.find((u) => u.id == req.params.id);
-  if (user) {
-    res.json(user);
-  } else {
-    res.status(404).json({ success: false, message: 'User not found' });
-  }
-});
+// GET: Retrieve all questions
+app.get('/api/questions', (req, res) => res.json(questions));
 
-app.get('/api/questions', (req, res) => {
-  res.json(questions);
-});
+// Error handling for 404
+app.use((req, res, next) => next(createError(404)));
 
-// Error handling
-app.use((req, res, next) => {
-  next(createError(404));
-});
-
+// Global error handler
 app.use((err, req, res, next) => {
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
-
-  res.status(err.status || 500);
-  res.json({ error: err.message });
+  res.status(err.status || 500).json({ error: err.message });
 });
 
 // Start the server
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

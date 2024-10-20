@@ -190,7 +190,7 @@ app.post('/api/users', (req, res) => {
   console.log('Received data:', req.body);
   const { weight, height } = req.body;
 
-  if ( !weight || !height) {
+  if (!weight || !height || !education || !familyContact) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 

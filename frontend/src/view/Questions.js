@@ -101,27 +101,23 @@ const Questions = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true); // Start loading
-
+    console.log('Submitting form data:', formData); // Log the data being sent
+  
     try {
-      const response = await axios.post(
+      const result = await axios.post(
         'https://skrining-kesehatan-be-git-main-nicos-projects-0cde7cf6.vercel.app/api/users',
-        formData
+        formData,
+        {
+          headers: { 'Content-Type': 'application/json' },
+        }
       );
-
-      if (response.status === 200) {
-        console.log('Form submitted successfully:', response.data);
-        navigate('/display-data'); 
-      } else {
-        console.warn('Unexpected response:', response);
-      }
+      console.log('Response:', result.data);
+      navigate('/display-data');
     } catch (error) {
-      console.error('Error submitting form:', error);
-      alert('Failed to submit the form. Please try again.');
-    } finally {
-      setLoading(false); 
+      console.error('Error submitting form:', error.response ? error.response.data : error.message);
     }
   };
+  
 
   const renderQuestion = (question, index, category) => {
     const questionId = `${category}-${index}`;

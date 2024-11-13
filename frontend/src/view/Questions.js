@@ -48,12 +48,10 @@ const Questions = () => {
     }
   }, []);
 
-  // Save form data to sessionStorage on every change
   useEffect(() => {
     sessionStorage.setItem('formData', JSON.stringify(formData));
   }, [formData]);
 
-  // Handle input changes
   const handleQuestionChange = (category, questionId, value) => {
     setFormData((prev) => ({
       ...prev,
@@ -100,21 +98,51 @@ const Questions = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    console.log('Submitting form data:', formData); // Log the data being sent
-  
+    if (e) e.preventDefault();
+    setLoading(true);
+    
     try {
-      const result = await axios.post(
+      // Get saved form data from session storage
+      const savedFormData = JSON.parse(sessionStorage.getItem('formData')) || {};
+      
+      // Prepare the data to be sent
+      const dataToSubmit = {
+        ...savedFormData,
+        healthQuestions: {
+          klinis: formData.healthQuestions.klinis || {},
+          kesehatanDiri: formData.healthQuestions.kesehatanDiri || {},
+          kesehatanKeluarga: formData.healthQuestions.kesehatanKeluarga || {},
+          konsumsiMakanan: formData.healthQuestions.konsumsiMakanan || {},
+        }
+      };
+
+      // Log the data being sent
+      console.log('Submitting data:', dataToSubmit);
+
+      const response = await axios.post(
         'https://skrining-kesehatan-be-git-main-nicos-projects-0cde7cf6.vercel.app/api/users',
-        formData,
+        dataToSubmit,
         {
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
         }
       );
-      console.log('Response:', result.data);
-      navigate('/display-data');
+
+      console.log('Response:', response.data);
+      
+      if (response.data && response.data.userId) {
+        // Navigate to the result page with the user ID
+        navigate(`/result/${response.data.userId}`);
+      } else {
+        navigate('/display-data');
+      }
     } catch (error) {
-      console.error('Error submitting form:', error.response ? error.response.data : error.message);
+      console.error('Submission error:', error);
+      alert('Error submitting form. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
   

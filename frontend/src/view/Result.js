@@ -39,10 +39,7 @@ const Result = () => {
           <h3 className="text-lg font-semibold bg-blue-100 p-4 rounded -mx-4 mb-4 -mt-4">Info Skrining Sekunder</h3>
           <table className="w-full">
             <tbody>
-              <tr>
-                <td className="px-4 py-2 font-semibold border-b border-gray-300">No Kartu</td>
-                <td className="px-4 py-2 border-b border-gray-300">{user.bpjsNumber || 'N/A'}</td>
-              </tr>
+          
               <tr>
                 <td className="px-4 py-2 font-semibold border-b border-gray-300">Nama</td>
                 <td className="px-4 py-2 border-b border-gray-300">{user.familyContact?.name || 'N/A'}</td>

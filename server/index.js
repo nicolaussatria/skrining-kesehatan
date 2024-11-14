@@ -9,31 +9,26 @@ const User = require('./models/User'); // Import the User model
 const { evaluateRisk } = require('./models/riskCriteria'); // Import riskCriteria model if needed
 const app = express();
 
-// CORS Middleware
-const corsOptions = {
-  origin: ['http://localhost:3000', 'https://your-frontend-domain.com'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-  credentials: true,
-  preflightContinue: false,
-  optionsSuccessStatus: 204,
-};
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
 
-// Middleware to parse JSON requests
+// CORS configuration
+app.use(cors({
+  origin: '*', // For development, you might want to restrict this in production
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+
+// Middleware
 app.use(express.json());
 
 // MongoDB Connection
-const MONGO_ATLAS_URL = process.env.MONGO_ATLAS_URL || 'mongodb+srv://nicolaussatria:gerobakijo333@cluster.gnwjw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster';
-mongoose.connect(MONGO_ATLAS_URL, {
+mongoose.connect(process.env.MONGO_ATLAS_URL || 'mongodb+srv://nicolaussatria:gerobakijo333@cluster.gnwjw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
-  .then(() => console.log('Connected to MongoDB Atlas'))
-  .catch((error) => console.error('Error connecting to MongoDB:', error));
+.then(() => console.log('Connected to MongoDB Atlas'))
+.catch((error) => console.error('Error connecting to MongoDB:', error));
 
-// Mock Question Data
 const questions = [
   {
     questionText: 'Berapakah hasil tekanan darah ibu terakhir yang di ukur oleh petugas RS atau Puskesmas ? (hasil tekanan darah dapat di lihat pada buku KIA)',
@@ -186,28 +181,24 @@ const questions = [
 ];
 
 // POST: Add a new user with risk level evaluation
+app.get('/api/questions', (req, res) => {
+  try {
+    res.json(QUESTIONS);
+  } catch (error) {
+    console.error('Error fetching questions:', error);
+    res.status(500).json({ error: 'Failed to fetch questions' });
+  }
+});
+
+// POST: Add a new user
 app.post('/api/users', async (req, res) => {
   try {
-    console.log('Received data:', req.body);
     const { weight, height, education, familyContact, healthQuestions } = req.body;
 
-    // Validate required fields
-    if (!weight || !height || !education || !familyContact) {
-      return res.status(400).json({
-        error: 'Missing required fields',
-        details: {
-          weight: !weight,
-          height: !height,
-          education: !education,
-          familyContact: !familyContact,
-        },
-      });
-    }
-
-    // Calculate risk level based on health questions
+    // Calculate risk level
     const riskLevel = evaluateRisk(healthQuestions);
 
-    // Create and save new user
+    // Create new user
     const newUser = new User({
       weight: Number(weight),
       height: Number(height),
@@ -216,6 +207,7 @@ app.post('/api/users', async (req, res) => {
       healthQuestions,
       riskLevel,
     });
+
     const savedUser = await newUser.save();
     res.status(201).json({
       success: true,
@@ -224,10 +216,20 @@ app.post('/api/users', async (req, res) => {
     });
   } catch (error) {
     console.error('Error saving user:', error);
-    res.status(500).json({
-      error: 'Error saving user data',
-      details: error.message,
-    });
+    res.status(500).json({ error: 'Error saving user data', details: error.message });
+  }
+});
+
+// GET: Retrieve a specific user
+app.get('/api/users/:userId', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ error: 'Error fetching user data' });
   }
 });
 
@@ -241,17 +243,5 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
-// GET: Retrieve all questions
-app.get('/api/questions', (req, res) => res.json(questions));
-
-// Error handling for 404
-app.use((req, res, next) => next(createError(404)));
-
-// Global error handler
-app.use((err, req, res, next) => {
-  res.status(err.status || 500).json({ error: err.message });
-});
-
-// Start the server
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

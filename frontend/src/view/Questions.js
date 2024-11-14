@@ -1,15 +1,14 @@
-// src/view/Questions.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { useFormData } from '../FormContext'; // Import the context
+import { useFormData } from '../FormContext';
 
 const Questions = () => {
-  const { formData, setFormData } = useFormData(); // Get form data from context
+  const { formData, setFormData } = useFormData();
   const [questions, setQuestions] = useState([]);
   const [categoryIndex, setCategoryIndex] = useState(0);
-  const [loading, setLoading] = useState(false); // Track loading state during submission
-  const [fetching, setFetching] = useState(true); // Track question fetching status
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
   const navigate = useNavigate();
 
   const categoryMapping = {
@@ -22,63 +21,150 @@ const Questions = () => {
   const categories = Object.keys(categoryMapping);
   const currentCategory = categories[categoryIndex];
 
-  // Fetch questions from the backend on mount
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const result = await axios.get(
-          'https://skrining-kesehatan-be-git-main-nicos-projects-0cde7cf6.vercel.app/api/questions'
-        );
-        setQuestions(result.data);
+        const response = await axios.get('https://skrining-kesehatan-be-git-main-nicos-projects-0cde7cf6.vercel.app/api/questions');
+        setQuestions(response.data);
       } catch (error) {
         console.error('Error fetching questions:', error);
         alert('Failed to fetch questions. Please try again later.');
       } finally {
-        setFetching(false); // Stop fetching state
+        setFetching(false);
       }
     };
     fetchQuestions();
   }, []);
 
-  // Load saved form data from sessionStorage on mount
   useEffect(() => {
     const savedFormData = sessionStorage.getItem('formData');
     if (savedFormData) {
       setFormData(JSON.parse(savedFormData));
     }
-  }, []);
+  }, [setFormData]);
 
   useEffect(() => {
-    sessionStorage.setItem('formData', JSON.stringify(formData));
+    if (formData) {
+      sessionStorage.setItem('formData', JSON.stringify(formData));
+    }
   }, [formData]);
 
-  const handleQuestionChange = (category, questionId, value) => {
-    setFormData((prev) => ({
+  const handleQuestionChange = (questionText, value) => {
+    setFormData(prev => ({
       ...prev,
       healthQuestions: {
         ...prev.healthQuestions,
-        [category]: {
-          ...prev.healthQuestions[category],
-          [questionId]: value,
-        },
-      },
+        [currentCategory]: {
+          ...prev.healthQuestions[currentCategory],
+          [questionText]: value
+        }
+      }
     }));
   };
 
-  const handleBloodPressureChange = (category, questionId, type, value) => {
-    setFormData((prev) => ({
+  const handleBloodPressureChange = (questionText, type, value) => {
+    setFormData(prev => ({
       ...prev,
       healthQuestions: {
         ...prev.healthQuestions,
-        [category]: {
-          ...prev.healthQuestions[category],
-          [questionId]: {
-            ...prev.healthQuestions[category][questionId],
-            [type]: value,
-          },
-        },
-      },
+        [currentCategory]: {
+          ...prev.healthQuestions[currentCategory],
+          [questionText]: {
+            ...prev.healthQuestions[currentCategory][questionText],
+            [type]: value
+          }
+        }
+      }
     }));
+  };
+
+  const handleSubmit = async () => {
+    setLoading(true);
+    try {
+      const dataToSubmit = {
+        ...formData,
+        healthQuestions: {
+          klinis: formData.healthQuestions.klinis || {},
+          kesehatanDiri: formData.healthQuestions.kesehatanDiri || {},
+          kesehatanKeluarga: formData.healthQuestions.kesehatanKeluarga || {},
+          konsumsiMakanan: formData.healthQuestions.konsumsiMakanan || {}
+        }
+      };
+
+      const response = await axios.post(
+        'https://skrining-kesehatan-be-git-main-nicos-projects-0cde7cf6.vercel.app/api/users',
+        dataToSubmit,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+
+      if (response.data && response.data.userId) {
+        navigate(`/result/${response.data.userId}`);
+      } else {
+        navigate('/display-data');
+      }
+    } catch (error) {
+      console.error('Submission error:', error);
+      alert('Error submitting form. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderQuestion = (question) => {
+    if (question.type === 'input' && question.questionText.includes('tekanan darah')) {
+      const currentValue = formData.healthQuestions[currentCategory][question.questionText] || {};
+      return (
+        <div key={question.questionText} className="mb-4">
+          <label className="block text-gray-700 mb-2">{question.questionText}</label>
+          <div className="flex items-center">
+            <input
+              type="number"
+              value={currentValue.systolic || ''}
+              onChange={(e) => handleBloodPressureChange(question.questionText, 'systolic', e.target.value)}
+              placeholder="Systolic"
+              className="w-16 p-2 border border-gray-300 rounded mr-2"
+            />
+            <span>/</span>
+            <input
+              type="number"
+              value={currentValue.diastolic || ''}
+              onChange={(e) => handleBloodPressureChange(question.questionText, 'diastolic', e.target.value)}
+              placeholder="Diastolic"
+              className="w-16 p-2 border border-gray-300 rounded mx-2"
+            />
+            <span>mmHg</span>
+          </div>
+        </div>
+      );
+    }
+
+    if (question.type === 'radio') {
+      const currentValue = formData.healthQuestions[currentCategory][question.questionText] || '';
+      return (
+        <div key={question.questionText} className="mb-4">
+          <label className="block text-gray-700 mb-2">{question.questionText}</label>
+          {question.options.map((option, i) => (
+            <div key={i} className="flex items-center">
+              <input
+                type="radio"
+                name={question.questionText}
+                value={option}
+                checked={currentValue === option}
+                onChange={(e) => handleQuestionChange(question.questionText, e.target.value)}
+                className="mr-2"
+              />
+              <label>{option}</label>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    return null;
   };
 
   const handleNextCategory = () => {
@@ -97,148 +183,20 @@ const Questions = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    if (e) e.preventDefault();
-    setLoading(true);
-    
-    try {
-      // Get saved form data from session storage
-      const savedFormData = JSON.parse(sessionStorage.getItem('formData')) || {};
-      
-      // Prepare the data to be sent
-      const dataToSubmit = {
-        ...savedFormData,
-        healthQuestions: {
-          klinis: formData.healthQuestions.klinis || {},
-          kesehatanDiri: formData.healthQuestions.kesehatanDiri || {},
-          kesehatanKeluarga: formData.healthQuestions.kesehatanKeluarga || {},
-          konsumsiMakanan: formData.healthQuestions.konsumsiMakanan || {},
-        }
-      };
-
-      // Log the data being sent
-      console.log('Submitting data:', dataToSubmit);
-
-      const response = await axios.post(
-        'https://skrining-kesehatan-be-git-main-nicos-projects-0cde7cf6.vercel.app/api/users',
-        dataToSubmit,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          }
-        }
-      );
-
-      console.log('Response:', response.data);
-      
-      if (response.data && response.data.userId) {
-        // Navigate to the result page with the user ID
-        navigate(`/result/${response.data.userId}`);
-      } else {
-        navigate('/display-data');
-      }
-    } catch (error) {
-      console.error('Submission error:', error);
-      alert('Error submitting form. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-
-  const renderQuestion = (question, index, category) => {
-    const questionId = `${category}-${index}`;
-    const value = formData.healthQuestions[category][questionId] || '';
-
-    if (question.type === 'input' && question.questionText.includes('tekanan darah')) {
-      const systolic = value.systolic || '';
-      const diastolic = value.diastolic || '';
-
-      return (
-        <div key={questionId} className="mb-4">
-          <label className="block text-gray-700 mb-2">{question.questionText}</label>
-          <div className="flex items-center">
-            <input
-              type="number"
-              value={systolic}
-              onChange={(e) =>
-                handleBloodPressureChange(category, questionId, 'systolic', e.target.value)
-              }
-              placeholder="Systolic"
-              className="w-16 p-2 border border-gray-300 rounded mr-2"
-            />
-            <span>/</span>
-            <input
-              type="number"
-              value={diastolic}
-              onChange={(e) =>
-                handleBloodPressureChange(category, questionId, 'diastolic', e.target.value)
-              }
-              placeholder="Diastolic"
-              className="w-16 p-2 border border-gray-300 rounded mx-2"
-            />
-            <span>mmHg</span>
-          </div>
-        </div>
-      );
-    }
-
-    if (question.type === 'input') {
-      return (
-        <div key={questionId} className="mb-4">
-          <label className="block text-gray-700 mb-2">{question.questionText}</label>
-          <input
-            type="text"
-            value={value}
-            onChange={(e) => handleQuestionChange(category, questionId, e.target.value)}
-            placeholder="Enter your answer"
-            className="w-full p-2 border border-gray-300 rounded"
-          />
-        </div>
-      );
-    }
-
-    if (question.type === 'radio') {
-      return (
-        <div key={questionId} className="mb-4">
-          <label className="block text-gray-700 mb-2">{question.questionText}</label>
-          {question.options.map((option, i) => (
-            <div key={`${questionId}-${i}`} className="flex items-center">
-              <input
-                type="radio"
-                name={questionId}
-                value={option}
-                checked={value === option}
-                onChange={(e) => handleQuestionChange(category, questionId, e.target.value)}
-                className="mr-2"
-              />
-              <label>{option}</label>
-            </div>
-          ))}
-        </div>
-      );
-    }
-
-    return null;
-  };
+  if (fetching) {
+    return <div>Loading questions...</div>;
+  }
 
   const currentCategoryQuestions = questions.filter(
     (q) => q.category === categoryMapping[currentCategory]
   );
 
-  if (fetching) {
-    return <div>Loading questions...</div>; // Display loading state while fetching
-  }
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
         <h2 className="text-2xl font-semibold mb-6">{categoryMapping[currentCategory]}</h2>
-        <form onSubmit={handleSubmit}>
-          {currentCategoryQuestions.map((question, index) =>
-            renderQuestion(question, index, currentCategory)
-          )}
+        <form onSubmit={(e) => e.preventDefault()}>
+          {currentCategoryQuestions.map((question) => renderQuestion(question))}
           <div className="flex justify-between mt-4">
             <button
               type="button"
@@ -247,24 +205,18 @@ const Questions = () => {
             >
               {categoryIndex === 0 ? 'Kembali ke home' : 'Sebelumnya'}
             </button>
-            {categoryIndex < categories.length - 1 && (
-              <button
-                type="button"
-                onClick={handleNextCategory}
-                className="bg-blue-500 text-white p-2 rounded"
-              >
-                Selanjutnya
-              </button>
-            )}
-            {categoryIndex === categories.length - 1 && (
-              <button
-                type="submit"
-                className="bg-green-500 text-white p-2 rounded"
-                disabled={loading}
-              >
-                {loading ? 'Submitting...' : 'Submit'}
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={handleNextCategory}
+              className={`${
+                categoryIndex === categories.length - 1 ? 'bg-green-500' : 'bg-blue-500'
+              } text-white p-2 rounded`}
+              disabled={loading}
+            >
+              {categoryIndex === categories.length - 1
+                ? loading ? 'Submitting...' : 'Submit'
+                : 'Selanjutnya'}
+            </button>
           </div>
         </form>
       </div>

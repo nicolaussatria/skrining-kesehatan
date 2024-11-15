@@ -259,43 +259,95 @@ const fetchQuestions = async () => {
   };
 
   // Update submit handler
-const handleSubmit = async () => {
-  setLoading(true);
-  try {
-    const dataToSubmit = {
-      ...formData,
-      healthQuestions: {
-        klinis: formData.healthQuestions?.klinis || {},
-        kesehatanDiri: formData.healthQuestions?.kesehatanDiri || {},
-        kesehatanKeluarga: formData.healthQuestions?.kesehatanKeluarga || {},
-        konsumsiMakanan: formData.healthQuestions?.konsumsiMakanan || {}
+  const handleSubmit = async () => {
+    setLoading(true);
+    try {
+      // Validate required fields
+      if (!formData.weight || !formData.height || !formData.education) {
+        alert('Mohon lengkapi data diri (berat badan, tinggi badan, dan pendidikan)');
+        navigate('/');
+        return;
       }
-    };
-
-    const response = await axios.post(
-      `${API_BASE_URL}/api/users`,
-      dataToSubmit,
-      {
-        timeout: 15000,
-        headers: {
-          'Content-Type': 'application/json',
+  
+      if (!formData.familyContact?.name || !formData.familyContact?.phone) {
+        alert('Mohon lengkapi data kontak keluarga (minimal nama dan nomor telepon)');
+        navigate('/');
+        return;
+      }
+  
+      // Validate all questions are answered
+      const validateAnswers = () => {
+        for (const category of categories) {
+          const categoryQuestions = questions.filter(
+            q => q.category === categoryMapping[category]
+          );
+          
+          for (const question of categoryQuestions) {
+            const answer = formData.healthQuestions?.[category]?.[question.questionText];
+            
+            if (question.type === 'input' && question.questionText.includes('tekanan darah')) {
+              if (!answer?.systolic || !answer?.diastolic) {
+                throw new Error(`Mohon isi tekanan darah di bagian ${categoryMapping[category]}`);
+              }
+            } else if (!answer) {
+              throw new Error(`Mohon jawab semua pertanyaan di bagian ${categoryMapping[category]}`);
+            }
+          }
+        }
+      };
+  
+      validateAnswers();
+  
+      const dataToSubmit = {
+        weight: Number(formData.weight),
+        height: Number(formData.height),
+        education: formData.education,
+        familyContact: {
+          name: formData.familyContact.name,
+          address: formData.familyContact.address || '',
+          phone: formData.familyContact.phone,
+          email: formData.familyContact.email || ''
         },
-        validateStatus: status => status < 500
+        healthQuestions: {
+          klinis: formData.healthQuestions?.klinis || {},
+          kesehatanDiri: formData.healthQuestions?.kesehatanDiri || {},
+          kesehatanKeluarga: formData.healthQuestions?.kesehatanKeluarga || {},
+          konsumsiMakanan: formData.healthQuestions?.konsumsiMakanan || {}
+        }
+      };
+  
+      const response = await axios.post(
+        `${API_BASE_URL}/api/users`,
+        dataToSubmit,
+        {
+          timeout: 15000,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+  
+      if (response.data && response.data.userId) {
+        // Clear session storage after successful submission
+        sessionStorage.removeItem('formData');
+        sessionStorage.removeItem('cachedQuestions');
+        navigate(`/result/${response.data.userId}`);
+      } else {
+        throw new Error('Invalid response from server');
       }
-    );
-
-    if (response.data && response.data.userId) {
-      navigate(`/result/${response.data.userId}`);
-    } else {
-      throw new Error('Invalid response from server');
+    } catch (error) {
+      console.error('Submission error:', error);
+      if (error.response?.status === 400) {
+        alert(error.response.data.message || 'Mohon periksa kembali data yang diinput');
+      } else if (error.message.includes('Mohon')) {
+        alert(error.message);
+      } else {
+        alert('Terjadi kesalahan saat mengirim data. Silakan coba lagi.');
+      }
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error('Submission error:', error);
-    alert('Terjadi kesalahan saat mengirim data. Silakan coba lagi.');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const renderQuestion = (question) => {
     if (question.type === 'input' && question.questionText.includes('tekanan darah')) {

@@ -7,14 +7,6 @@ const { evaluateRisk } = require('./models/riskCriteria');
 const app = express();
 
 
-const errorHandler = (err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(err.status || 500).json({
-    error: err.message || 'Internal Server Error',
-    details: process.env.NODE_ENV === 'development' ? err.stack : undefined
-  });
-};
-
 app.use(cors({
   origin: ['https://skrining-kesehatan-fe.vercel.app', 'http://localhost:3000'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -23,27 +15,15 @@ app.use(cors({
 }));
 
 
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json());
 
-const connectDB = async () => {
-  try {
-    const mongoOptions = {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 10000, 
-      socketTimeoutMS: 45000,
-      family: 4, 
-      maxPoolSize: 50, 
-      connectTimeoutMS: 10000,
-    };
 
-    await mongoose.connect(process.env.MONGO_ATLAS_URL || 'mongodb+srv://nicolaussatria:gerobakijo333@cluster.gnwjw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster', mongoOptions);
-    console.log('Connected to MongoDB Atlas');
-  } catch (error) {
-    console.error('MongoDB connection error:', error);
-    process.exit(1);
-  }
-};
+mongoose.connect(process.env.MONGO_ATLAS_URL || 'mongodb+srv://nicolaussatria:gerobakijo333@cluster.gnwjw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => console.log('Connected to MongoDB Atlas'))
+.catch((error) => console.error('Error connecting to MongoDB:', error));
 
 const questions = [
   {
@@ -209,34 +189,22 @@ app.get('/api/questions', (req, res) => {
   }
 });
 
-app.post('/api/users', async (req, res, next) => {
+// POST: Add a new user
+// server.js
+// Update the user creation endpoint
+app.post('/api/users', async (req, res) => {
   try {
     const { weight, height, education, familyContact, healthQuestions } = req.body;
 
-
+    // Validate required fields
     if (!weight || !height || !education || !familyContact) {
-      return res.status(400).json({
-        error: 'Missing required fields',
-        details: {
-          weight: !weight,
-          height: !height,
-          education: !education,
-          familyContact: !familyContact
-        }
-      });
+      return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    if (isNaN(weight) || isNaN(height) || weight <= 0 || height <= 0) {
-      return res.status(400).json({
-        error: 'Invalid weight or height values',
-        details: { weight, height }
-      });
-    }
-
-
+    // Calculate risk level
     const riskLevel = evaluateRisk(healthQuestions);
 
-  
+    // Create new user with timeout
     const newUser = new User({
       weight: Number(weight),
       height: Number(height),
@@ -246,59 +214,40 @@ app.post('/api/users', async (req, res, next) => {
       riskLevel,
     });
 
-
+    // Set timeout for save operation
     const savedUser = await Promise.race([
       newUser.save(),
       new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Database operation timed out after 15 seconds')), 15000)
+        setTimeout(() => reject(new Error('Database timeout')), 8000)
       )
     ]);
 
-   
     res.status(201).json({
       success: true,
       userId: savedUser._id,
       riskLevel: savedUser.riskLevel,
     });
-
   } catch (error) {
-   
-    if (error.name === 'ValidationError') {
-      return res.status(400).json({
-        error: 'Validation Error',
-        details: Object.values(error.errors).map(err => err.message)
-      });
-    }
-
-    if (error.message.includes('timed out')) {
-      return res.status(504).json({
-        error: 'Gateway Timeout',
-        message: 'The request took too long to process. Please try again.',
-        retryAfter: 5
-      });
-    }
-
-    next(error);
+    console.error('Error saving user:', error);
+    res.status(error.message === 'Database timeout' ? 504 : 500).json({ 
+      error: 'Error saving user data', 
+      details: error.message 
+    });
   }
 });
 
 // GET: Retrieve a specific user
-app.get('/api/users/:userId', async (req, res, next) => {
+app.get('/api/users/:userId', async (req, res) => {
   try {
-    const user = await User.findById(req.params.userId)
-      .lean()  // Convert to plain JS object for faster response
-      .select('-__v'); // Exclude version key
-
+    const user = await User.findById(req.params.userId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
     res.json(user);
   } catch (error) {
-    next(error);
+    res.status(500).json({ error: 'Error fetching user data' });
   }
 });
-
-app.use(errorHandler);
 
 // GET: Retrieve all users
 app.get('/api/users', async (req, res) => {
@@ -310,14 +259,5 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM received. Closing MongoDB connection...');
-  await mongoose.connection.close();
-  process.exit(0);
-});
 const PORT = process.env.PORT || 5001;
-connectDB().then(() => {
-  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-});
-
-module.exports = app;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

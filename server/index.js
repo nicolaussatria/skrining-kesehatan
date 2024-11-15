@@ -10,9 +10,8 @@ const { evaluateRisk } = require('./models/riskCriteria'); // Import riskCriteri
 const app = express();
 
 
-// CORS configuration
 app.use(cors({
-  origin: '*', // For development, you might want to restrict this in production
+  origin: ['https://skrining-kesehatan-fe.vercel.app', 'http://localhost:3000'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
@@ -180,25 +179,35 @@ const questions = [
   },
 ];
 
-// POST: Add a new user with risk level evaluation
 app.get('/api/questions', (req, res) => {
   try {
-    res.json(QUESTIONS);
+    
+    res.json(questions);
   } catch (error) {
     console.error('Error fetching questions:', error);
-    res.status(500).json({ error: 'Failed to fetch questions' });
+    res.status(500).json({ 
+      error: 'Failed to fetch questions',
+      details: error.message 
+    });
   }
 });
 
 // POST: Add a new user
+// server.js
+// Update the user creation endpoint
 app.post('/api/users', async (req, res) => {
   try {
     const { weight, height, education, familyContact, healthQuestions } = req.body;
 
+    // Validate required fields
+    if (!weight || !height || !education || !familyContact) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
     // Calculate risk level
     const riskLevel = evaluateRisk(healthQuestions);
 
-    // Create new user
+    // Create new user with timeout
     const newUser = new User({
       weight: Number(weight),
       height: Number(height),
@@ -208,7 +217,14 @@ app.post('/api/users', async (req, res) => {
       riskLevel,
     });
 
-    const savedUser = await newUser.save();
+    // Set timeout for save operation
+    const savedUser = await Promise.race([
+      newUser.save(),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database timeout')), 8000)
+      )
+    ]);
+
     res.status(201).json({
       success: true,
       userId: savedUser._id,
@@ -216,7 +232,10 @@ app.post('/api/users', async (req, res) => {
     });
   } catch (error) {
     console.error('Error saving user:', error);
-    res.status(500).json({ error: 'Error saving user data', details: error.message });
+    res.status(error.message === 'Database timeout' ? 504 : 500).json({ 
+      error: 'Error saving user data', 
+      details: error.message 
+    });
   }
 });
 

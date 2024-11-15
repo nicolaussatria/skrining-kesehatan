@@ -203,7 +203,8 @@ const fetchQuestions = async () => {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json'
-      }
+      },
+      withCredentials: true,
     });
 
     if (response.data) {

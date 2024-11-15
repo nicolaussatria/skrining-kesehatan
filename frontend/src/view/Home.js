@@ -1,25 +1,14 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useFormData } from '../FormContext';
 import Consent from './Consent';
 
 const Home = () => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    weight: '',
-    height: '',
-    education: '',
-    familyContact: {
-      name: '',
-      address: '',
-      phone: '',
-      email: ''
-    }
-  });
-
+  const { formData, setFormData } = useFormData();
   const [showConsent, setShowConsent] = useState(false);
   const [errors, setErrors] = useState({});
 
-  // Handle input change for form fields
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name.includes('familyContact.')) {
@@ -32,37 +21,43 @@ const Home = () => {
         }
       }));
     } else {
-      setFormData({ ...formData, [name]: value });
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
     }
   };
 
   
-
-  // Basic validation before showing consent
-  const validateForm = () => {
+   const validateForm = () => {
     let formErrors = {};
-    // if (!formData.bpjsNumber) formErrors.bpjsNumber = 'BPJS Number is required.';
-    if (!formData.weight) formErrors.weight = 'Weight is required.';
-    if (!formData.height) formErrors.height = 'Height is required.';
-    if (!formData.education) formErrors.education = 'Education is required.';
-    if (!formData.familyContact.name) formErrors.familyContactName = 'Family contact name is required.';
-    if (!formData.familyContact.phone) formErrors.familyContactPhone = 'Family contact phone is required.';
+    
+    if (!formData.weight) formErrors.weight = 'Berat badan harus diisi.';
+    if (!formData.height) formErrors.height = 'Tinggi badan harus diisi.';
+    if (!formData.education) formErrors.education = 'Pendidikan harus dipilih.';
+    if (!formData.familyContact.name) formErrors.familyContactName = 'Nama keluarga harus diisi.';
+    if (!formData.familyContact.phone) formErrors.familyContactPhone = 'Nomor telepon keluarga harus diisi.';
+    
     setErrors(formErrors);
     return Object.keys(formErrors).length === 0;
   };
 
-  // Handle next button click
   const handleNext = () => {
-    navigate('/questions'); // Navigate to questions page
+    if (validateForm()) {
+      // Save current data to sessionStorage
+      sessionStorage.setItem('formData', JSON.stringify(formData));
+      navigate('/questions');
+    } else {
+      alert('Mohon lengkapi semua data yang diperlukan');
+    }
   };
 
 
-  // Handle consent dialog close
   const handleConsentClose = () => {
     setShowConsent(false);
   };
 
-  // Handle consent agree action
+
   const handleConsentAgree = () => {
     setShowConsent(false);
     navigate('/questions', { state: { formData } });
@@ -72,7 +67,7 @@ const Home = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-lg">
         <h2 className="text-2xl font-semibold mb-6">Data Diri</h2>
-        <form>
+        <form  onSubmit={(e) => e.preventDefault()}>
           {/* <div className="mb-4">
             <label className="block text-gray-700 font-bold mb-2" htmlFor="bpjsNumber">
               No Kartu BPJS
@@ -199,7 +194,9 @@ const Home = () => {
               />
             </div>
           </div>
-
+          {Object.keys(errors).map((key) => (
+            <p key={key} className="text-red-500 text-sm">{errors[key]}</p>
+          ))}
           <button type="button" onClick={handleNext} className="w-full bg-blue-500 text-white p-2 rounded">
             Selanjutnya
           </button>

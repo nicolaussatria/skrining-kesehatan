@@ -1,18 +1,21 @@
-// index.js
 const express = require('express');
 const cors = require('cors');
 const { QuestionsService, UserService } = require('./services/supabaseClient');
 
 const app = express();
 
+// CORS Middleware
 app.use(cors({
-  origin: ['https://skrining-kesehatan-fe.vercel.app', 'http://localhost:3000'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  origin: ['https://skrining-kesehatan-fe.vercel.app', 'http://localhost:3000'], // Allowed origins
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allowed methods
+  allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
+  credentials: true, // Allow credentials
 }));
 
+// Middleware to Parse JSON
 app.use(express.json());
+
+// Routes
 
 // Get all questions
 app.get('/api/questions', async (req, res) => {
@@ -42,19 +45,19 @@ app.post('/api/users', async (req, res) => {
       height,
       education,
       familyContact,
-      healthQuestions
+      healthQuestions,
     });
 
     res.status(201).json({
       success: true,
       userId: user.id,
-      riskLevel: user.risk_level
+      riskLevel: user.risk_level,
     });
   } catch (error) {
     console.error('Error saving user:', error);
     res.status(500).json({ 
       error: 'Error saving user data', 
-      details: error.message 
+      details: error.message,
     });
   }
 });
@@ -82,5 +85,6 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
+// Start the server
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

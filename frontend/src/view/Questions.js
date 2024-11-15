@@ -293,6 +293,35 @@ const Questions = () => {
     }
   };
 
+  const handleQuestionChange = (questionText, value) => {
+    setFormData(prev => ({
+      ...prev,
+      healthQuestions: {
+        ...prev.healthQuestions,
+        [currentCategory]: {
+          ...prev.healthQuestions[currentCategory],
+          [questionText]: value
+        }
+      }
+    }));
+  };
+
+  const handleBloodPressureChange = (questionText, type, value) => {
+    setFormData(prev => ({
+      ...prev,
+      healthQuestions: {
+        ...prev.healthQuestions,
+        [currentCategory]: {
+          ...prev.healthQuestions[currentCategory],
+          [questionText]: {
+            ...prev.healthQuestions[currentCategory][questionText],
+            [type]: value
+          }
+        }
+      }
+    }));
+  };
+
   // Rest of your component code remains the same...
   const renderQuestion = (question) => {
     if (question.type === 'input' && question.questionText.includes('tekanan darah')) {

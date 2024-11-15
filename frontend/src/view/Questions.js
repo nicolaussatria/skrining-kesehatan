@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useFormData } from '../FormContext';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+
 
 const Questions = () => {
   const { formData, setFormData } = useFormData();
@@ -450,18 +450,7 @@ const fetchQuestions = async () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
         <h2 className="text-2xl font-semibold mb-6">{categoryMapping[currentCategory]}</h2>
-        {submissionAttempts > 0 && (
-          <Alert className="mb-4 bg-yellow-50">
-            <AlertDescription>
-              Mencoba mengirim data kembali... (Percobaan {submissionAttempts} dari {MAX_RETRIES})
-            </AlertDescription>
-          </Alert>
-        )}
-        {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
+       
         <form onSubmit={(e) => e.preventDefault()}>
           {currentCategoryQuestions.map((question) => renderQuestion(question))}
           <div className="flex justify-between mt-4">

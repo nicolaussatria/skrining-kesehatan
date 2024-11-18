@@ -13,7 +13,7 @@ const Questions = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://skrining-kesehatan-be-git-main-nicos-projects-0cde7cf6.vercel.app';
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://skrining-kesehatan-be.vercel.app';
 
   const categoryMapping = {
     klinis: 'Pertanyaan Klinis Kondisi Pasien',
@@ -32,17 +32,43 @@ const Questions = () => {
       'Accept': 'application/json',
       'Content-Type': 'application/json'
     },
-    withCredentials: true
   });
 
+  api.interceptors.request.use(
+    config => {
+      console.log('Making request to:', config.url);
+      return config;
+    },
+    error => {
+      console.error('Request error:', error);
+      return Promise.reject(error);
+    }
+  );
+
   api.interceptors.response.use(
-    response => response,
+    response => {
+      console.log('API Response:', response);
+      return response;
+    },
     error => {
       console.error('API Error:', error);
-      if (error.response?.status === 500) {
-        console.warn('Server error, falling back to local questions');
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', error.response.data);
+      } else if (error.request) {
+        console.error('No response received:', error.request);
+      } else {
+        console.error('Error setting up request:', error.message);
+      }
+      if (error.response?.status === 404) {
+        console.warn('API endpoint not found, falling back to local questions');
         return Promise.resolve({ data: fallbackQuestions });
       }
+      if (error.response?.status === 500 || !error.response) {
+        console.warn('Server error or network issue, falling back to local questions');
+        return Promise.resolve({ data: fallbackQuestions });
+      }
+
       return Promise.reject(error);
     }
   );
@@ -207,30 +233,37 @@ const Questions = () => {
       setError(null);
       
       try {
-       
+        // First try to get cached questions
         const cachedQuestions = sessionStorage.getItem('cachedQuestions');
         if (cachedQuestions) {
+          console.log('Using cached questions');
           setQuestions(JSON.parse(cachedQuestions));
           setFetching(false);
           return;
         }
 
-     
+        // Log the full URL being called
+        console.log('Fetching questions from:', `${API_BASE_URL}/api/questions`);
+
+        // Make the API call
         const response = await api.get('/api/questions');
         
         if (response.data) {
+          console.log('Successfully fetched questions:', response.data);
           setQuestions(response.data);
           // Cache the questions
           sessionStorage.setItem('cachedQuestions', JSON.stringify(response.data));
         }
       } catch (error) {
-        console.error('Error fetching questions:', error);
+        console.error('Error in fetchQuestions:', error);
         // Fall back to local questions if API fails
         setQuestions(fallbackQuestions);
         
-        // Show user-friendly error message
+        // Show user-friendly error message with more detail
         setError(
-          error.response?.status === 0 
+          error.response?.status === 404 
+            ? 'API endpoint tidak ditemukan. Menggunakan data lokal.' 
+            : error.response?.status === 0 
             ? 'Tidak dapat terhubung ke server. Menggunakan data lokal.' 
             : 'Terjadi kesalahan. Menggunakan data lokal.'
         );

@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { QuestionsService, UserService } = require('./services/supabaseClient');
+const { QuestionsService, UserService } = require('./supabaseClient');
 
 const app = express();
 

@@ -19,7 +19,7 @@ const Questions = () => {
     klinis: 'Pertanyaan Klinis Kondisi Pasien',
     kesehatanDiri: 'Riwayat Kesehatan Diri',
     kesehatanKeluarga: 'Riwayat Kesehatan Keluarga',
-    konsumsiMakanan: 'Pola Konsumsi Makanan',
+    konsumsiMakanan: 'Pola Konsumsi Makanan'
   };
   
   const categories = Object.keys(categoryMapping);
@@ -233,30 +233,19 @@ const Questions = () => {
       setError(null);
       
       try {
-        console.log('Fetching questions from:', `${API_BASE_URL}/api/questions`);
-
-        // Make the API call
         const response = await api.get('/api/questions');
         
         if (response.data && Array.isArray(response.data)) {
-          console.log('Successfully fetched questions:', response.data);
+          // No need to transform the data structure, just use it as is
           setQuestions(response.data);
           sessionStorage.setItem('cachedQuestions', JSON.stringify(response.data));
         } else {
           console.warn('Invalid response format, using fallback questions');
           setQuestions(fallbackQuestions);
-          setError('Invalid data format from API. Using local questions.');
         }
       } catch (error) {
         console.error('Error fetching questions:', error);
         setQuestions(fallbackQuestions);
-        setError(
-          error.response?.status === 404 
-            ? 'API endpoint tidak ditemukan. Menggunakan data lokal.' 
-            : error.response?.status === 0 
-            ? 'Tidak dapat terhubung ke server. Menggunakan data lokal.' 
-            : 'Terjadi kesalahan. Menggunakan data lokal.'
-        );
       } finally {
         setFetching(false);
       }
@@ -356,21 +345,21 @@ const Questions = () => {
 
   
   const renderQuestion = (question) => {
-    if (!question || typeof question.questionText !== 'string') {
+    if (!question || typeof question.question_text !== 'string') {
       return null;
     }
 
     // Special handling for blood pressure input
-    if (question.type === 'input' && question.questionText.toLowerCase().includes('tekanan darah')) {
-      const currentValue = formData?.healthQuestions?.[currentCategory]?.[question.questionText] || {};
+    if (question.type === 'input' && question.question_text.toLowerCase().includes('tekanan darah')) {
+      const currentValue = formData?.healthQuestions?.[currentCategory]?.[question.question_text] || {};
       return (
-        <div key={question.questionText} className="mb-4">
-          <label className="block text-gray-700 mb-2">{question.questionText}</label>
+        <div key={question.id} className="mb-4">
+          <label className="block text-gray-700 mb-2">{question.question_text}</label>
           <div className="flex items-center">
             <input
               type="number"
               value={currentValue.systolic || ''}
-              onChange={(e) => handleBloodPressureChange(question.questionText, 'systolic', e.target.value)}
+              onChange={(e) => handleBloodPressureChange(question.question_text, 'systolic', e.target.value)}
               placeholder="Systolic"
               className="w-16 p-2 border border-gray-300 rounded mr-2"
             />
@@ -378,11 +367,11 @@ const Questions = () => {
             <input
               type="number"
               value={currentValue.diastolic || ''}
-              onChange={(e) => handleBloodPressureChange(question.questionText, 'diastolic', e.target.value)}
+              onChange={(e) => handleBloodPressureChange(question.question_text, 'diastolic', e.target.value)}
               placeholder="Diastolic"
               className="w-16 p-2 border border-gray-300 rounded mx-2"
             />
-            <span>mmHg</span>
+            <span>{question.unit || 'mmHg'}</span>
           </div>
         </div>
       );
@@ -394,16 +383,16 @@ const Questions = () => {
     }
 
     return (
-      <div key={question.questionText} className="mb-4">
-        <label className="block text-gray-700 mb-2">{question.questionText}</label>
+      <div key={question.id} className="mb-4">
+        <label className="block text-gray-700 mb-2">{question.question_text}</label>
         {question.options.map((option, i) => (
-          <div key={i} className="flex items-center">
+          <div key={`${question.id}-${i}`} className="flex items-center">
             <input
               type="radio"
-              name={question.questionText}
+              name={question.question_text}
               value={option}
-              checked={formData?.healthQuestions?.[currentCategory]?.[question.questionText] === option}
-              onChange={(e) => handleQuestionChange(question.questionText, e.target.value)}
+              checked={formData?.healthQuestions?.[currentCategory]?.[question.question_text] === option}
+              onChange={(e) => handleQuestionChange(question.question_text, e.target.value)}
               className="mr-2"
             />
             <label>{option}</label>
@@ -413,8 +402,8 @@ const Questions = () => {
     );
   };
 
- 
 
+ 
   const currentCategoryQuestions = questions.filter(q => 
     q && 
     typeof q.category === 'string' && 

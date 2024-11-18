@@ -4,19 +4,32 @@ const { QuestionsService, UserService } = require('./services/supabaseClient');
 
 const app = express();
 
-// Add body parsing middleware - this was missing
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Simplified CORS configuration
-app.use(cors({
+const corsOptions = {
   origin: ['https://skrining-kesehatan-fe.vercel.app', 'http://localhost:3000'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+  maxAge: 86400 // 24 hours
+};
 
-// Get all questions
+app.use(cors(corsOptions));
+
+app.options('*', cors(corsOptions));
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: err.message
+  });
+});
+
+
+
+
 app.get('/api/questions', async (req, res) => {
   try {
     const questions = await QuestionsService.getAllQuestions();
@@ -30,38 +43,19 @@ app.get('/api/questions', async (req, res) => {
   }
 });
 
-// Create new health screening with improved validation
 app.post('/api/users', async (req, res) => {
   try {
+    console.log('Received request body:', req.body); // Debug log
+    
     const { weight, height, education, familyContact, healthQuestions } = req.body;
 
-    // Enhanced validation
     if (!weight || !height || !education || !familyContact) {
-      return res.status(400).json({ 
-        error: 'Missing required fields',
-        details: {
-          weight: !weight ? 'Weight is required' : null,
-          height: !height ? 'Height is required' : null,
-          education: !education ? 'Education is required' : null,
-          familyContact: !familyContact ? 'Family contact is required' : null
-        }
-      });
-    }
-
-    // Additional validation for family contact
-    if (!familyContact.name || !familyContact.phone) {
-      return res.status(400).json({
-        error: 'Incomplete family contact information',
-        details: {
-          name: !familyContact.name ? 'Family contact name is required' : null,
-          phone: !familyContact.phone ? 'Family contact phone is required' : null
-        }
-      });
+      return res.status(400).json({ error: 'Missing required fields' });
     }
 
     const user = await UserService.createUser({
-      weight: Number(weight),
-      height: Number(height),
+      weight,
+      height,
       education,
       familyContact,
       healthQuestions
@@ -73,7 +67,7 @@ app.post('/api/users', async (req, res) => {
       riskLevel: user.risk_level
     });
   } catch (error) {
-    console.error('Error saving user:', error);
+    console.error('Error creating user:', error);
     res.status(500).json({ 
       error: 'Error saving user data', 
       details: error.message 

@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useFormData } from '../FormContext';
 
+
 const Questions = () => {
   const { formData, setFormData } = useFormData();
   const [questions, setQuestions] = useState([]);
@@ -206,7 +207,7 @@ const Questions = () => {
       setError(null);
       
       try {
-        // Try to get questions from sessionStorage first
+       
         const cachedQuestions = sessionStorage.getItem('cachedQuestions');
         if (cachedQuestions) {
           setQuestions(JSON.parse(cachedQuestions));
@@ -214,7 +215,7 @@ const Questions = () => {
           return;
         }
 
-        // If no cached questions, try to fetch from API
+     
         const response = await api.get('/api/questions');
         
         if (response.data) {
@@ -306,12 +307,13 @@ const Questions = () => {
       healthQuestions: {
         ...prev.healthQuestions,
         [currentCategory]: {
-          ...prev.healthQuestions[currentCategory],
+          ...prev.healthQuestions?.[currentCategory],
           [questionText]: value
         }
       }
     }));
   };
+
 
   const handleBloodPressureChange = (questionText, type, value) => {
     setFormData(prev => ({
@@ -319,9 +321,9 @@ const Questions = () => {
       healthQuestions: {
         ...prev.healthQuestions,
         [currentCategory]: {
-          ...prev.healthQuestions[currentCategory],
+          ...prev.healthQuestions?.[currentCategory],
           [questionText]: {
-            ...prev.healthQuestions[currentCategory][questionText],
+            ...prev.healthQuestions?.[currentCategory]?.[questionText],
             [type]: value
           }
         }
@@ -329,10 +331,15 @@ const Questions = () => {
     }));
   };
 
-  // Rest of your component code remains the same...
+  
   const renderQuestion = (question) => {
-    if (question.type === 'input' && question.questionText.includes('tekanan darah')) {
-      const currentValue = formData.healthQuestions?.[currentCategory]?.[question.questionText] || {};
+    if (!question || typeof question.questionText !== 'string') {
+      return null;
+    }
+
+    // Special handling for blood pressure input
+    if (question.type === 'input' && question.questionText.toLowerCase().includes('tekanan darah')) {
+      const currentValue = formData?.healthQuestions?.[currentCategory]?.[question.questionText] || {};
       return (
         <div key={question.questionText} className="mb-4">
           <label className="block text-gray-700 mb-2">{question.questionText}</label>
@@ -358,6 +365,11 @@ const Questions = () => {
       );
     }
 
+    // Regular radio button questions
+    if (!Array.isArray(question.options)) {
+      return null;
+    }
+
     return (
       <div key={question.questionText} className="mb-4">
         <label className="block text-gray-700 mb-2">{question.questionText}</label>
@@ -367,7 +379,7 @@ const Questions = () => {
               type="radio"
               name={question.questionText}
               value={option}
-              checked={formData.healthQuestions?.[currentCategory]?.[question.questionText] === option}
+              checked={formData?.healthQuestions?.[currentCategory]?.[question.questionText] === option}
               onChange={(e) => handleQuestionChange(question.questionText, e.target.value)}
               className="mr-2"
             />
@@ -378,6 +390,14 @@ const Questions = () => {
     );
   };
 
+ 
+
+  const currentCategoryQuestions = questions.filter(q => 
+    q && 
+    typeof q.category === 'string' && 
+    q.category === categoryMapping[currentCategory]
+  );
+
   if (fetching) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -385,10 +405,6 @@ const Questions = () => {
       </div>
     );
   }
-
-  const currentCategoryQuestions = questions.filter(
-    (q) => q.category === categoryMapping[currentCategory]
-  );
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 py-8">

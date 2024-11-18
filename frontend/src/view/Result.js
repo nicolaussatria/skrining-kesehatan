@@ -8,7 +8,6 @@ const Result = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Use environment variable for API base URL
   const API_BASE_URL = 'https://skrining-kesehatan-be-git-main-nicos-projects-0cde7cf6.vercel.app';
 
   useEffect(() => {
@@ -24,57 +23,127 @@ const Result = () => {
       }
     };
     fetchUser();
-  }, [userId, API_BASE_URL]);
+  }, [userId]);
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div className="text-red-500">{error}</div>;
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
 
-  if (!user) return <div>No user data available.</div>;
+  const getNextScreeningDate = (dateString) => {
+    const date = new Date(dateString);
+    date.setMonth(date.getMonth() + 3); // Add 3 months for next screening
+    return formatDate(date);
+  };
+
+  const getBMI = (weight, height) => {
+    const heightInMeters = height / 100;
+    const bmi = weight / (heightInMeters * heightInMeters);
+    return bmi.toFixed(1);
+  };
+
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+    </div>
+  );
+  
+  if (error) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-red-500 text-center p-4">{error}</div>
+    </div>
+  );
+
+  if (!user) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-gray-500">No user data available.</div>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-lg">
-        <h2 className="text-2xl font-semibold mb-6">Hasil Skrining Riwayat Kesehatan</h2>
-        <div className="p-4 rounded-lg shadow-md border border-gray-300">
-          <h3 className="text-lg font-semibold bg-blue-100 p-4 rounded -mx-4 mb-4 -mt-4">Info Skrining Sekunder</h3>
-          <table className="w-full">
-            <tbody>
-          
-              <tr>
-                <td className="px-4 py-2 font-semibold border-b border-gray-300">Nama</td>
-                <td className="px-4 py-2 border-b border-gray-300">{user.familyContact?.name || 'N/A'}</td>
-              </tr>
-              <tr>
-                <td className="px-4 py-2 font-semibold border-b border-gray-300">Tgl Skrining</td>
-                <td className="px-4 py-2 border-b border-gray-300">{new Date().toLocaleDateString()}</td>
-              </tr>
-              <tr>
-                <td className="px-4 py-2 font-semibold border-b border-gray-300">Alamat</td>
-                <td className="px-4 py-2 border-b border-gray-300">{user.familyContact?.address || 'N/A'}</td>
-              </tr>
-            </tbody>
-          </table>
-          <p className="text-red-500 mt-4">Skrining selanjutnya hanya dapat dilakukan mulai tanggal 01/01/2025</p>
-        </div>
-        <div className="mt-6">
-          {user.riskLevel === "high" && (
-            <div className="bg-red-100 p-4 rounded-lg shadow-md">
-              <p className="text-red-600 font-semibold">Risiko Tinggi Preeklampsia</p>
-              <p>Segera konsultasikan ke dokter.</p>
+    <div className="min-h-screen bg-gray-100 py-8 px-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          {/* Header */}
+          <div className="bg-blue-600 text-white px-6 py-4">
+            <h2 className="text-2xl font-semibold">Hasil Skrining Kesehatan</h2>
+            <p className="text-sm opacity-90">ID: {user.id}</p>
+          </div>
+
+          {/* Main Content */}
+          <div className="p-6">
+            {/* Personal Information */}
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold mb-4 text-gray-800">Informasi Pribadi</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="grid grid-cols-2 gap-2">
+                    <p className="text-gray-600">Nama</p>
+                    <p className="font-medium">{user.family_contact?.name}</p>
+                    <p className="text-gray-600">Email</p>
+                    <p className="font-medium">{user.family_contact?.email}</p>
+                    <p className="text-gray-600">Telepon</p>
+                    <p className="font-medium">{user.family_contact?.phone}</p>
+                    <p className="text-gray-600">Alamat</p>
+                    <p className="font-medium">{user.family_contact?.address}</p>
+                  </div>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="grid grid-cols-2 gap-2">
+                    <p className="text-gray-600">Tinggi Badan</p>
+                    <p className="font-medium">{user.height} cm</p>
+                    <p className="text-gray-600">Berat Badan</p>
+                    <p className="font-medium">{user.weight} kg</p>
+                    <p className="text-gray-600">BMI</p>
+                    <p className="font-medium">{getBMI(user.weight, user.height)}</p>
+                    <p className="text-gray-600">Pendidikan</p>
+                    <p className="font-medium">{user.education}</p>
+                  </div>
+                </div>
+              </div>
             </div>
-          )}
-          {user.riskLevel === "medium" && (
-            <div className="bg-yellow-100 p-4 rounded-lg shadow-md">
-              <p className="text-yellow-600 font-semibold">Risiko Sedang Preeklampsia</p>
-              <p>Perhatikan pola makan dan gaya hidup.</p>
+
+            {/* Risk Level Card */}
+            <div className={`mb-8 p-6 rounded-lg ${
+              user.risk_level === 'high' ? 'bg-red-50 border-red-200' :
+              user.risk_level === 'medium' ? 'bg-yellow-50 border-yellow-200' :
+              'bg-green-50 border-green-200'
+            } border`}>
+              <h3 className={`text-xl font-bold mb-2 ${
+                user.risk_level === 'high' ? 'text-red-700' :
+                user.risk_level === 'medium' ? 'text-yellow-700' :
+                'text-green-700'
+              }`}>
+                {user.risk_level === 'high' ? 'Risiko Tinggi Preeklampsia' :
+                 user.risk_level === 'medium' ? 'Risiko Sedang Preeklampsia' :
+                 'Risiko Rendah Preeklampsia'}
+              </h3>
+              <p className="text-gray-700">
+                {user.risk_level === 'high' ? 
+                  'Segera konsultasikan kondisi anda dengan dokter atau bidan terdekat.' :
+                 user.risk_level === 'medium' ? 
+                  'Perhatikan pola makan dan gaya hidup. Lakukan pemeriksaan rutin.' :
+                  'Tetap jaga pola hidup sehat dan lakukan pemeriksaan rutin sesuai jadwal.'}
+              </p>
             </div>
-          )}
-          {user.riskLevel === "low" && (
-            <div className="bg-green-100 p-4 rounded-lg shadow-md">
-              <p className="text-green-600 font-semibold">Risiko Rendah Preeklampsia</p>
-              <p>Jaga pola hidup sehat, lakukan latihan fisik rutin.</p>
+
+            {/* Screening Info */}
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-sm text-gray-600">Tanggal Skrining</p>
+                  <p className="font-medium">{formatDate(user.created_at)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Skrining Selanjutnya</p>
+                  <p className="font-medium text-blue-600">{getNextScreeningDate(user.created_at)}</p>
+                </div>
+              </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>

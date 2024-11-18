@@ -12,7 +12,7 @@ const Questions = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  const API_BASE_URL = 'https://skrining-kesehatan-be-git-main-nicos-projects-0cde7cf6.vercel.app';
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://skrining-kesehatan-be-git-main-nicos-projects-0cde7cf6.vercel.app';
 
   const categoryMapping = {
     klinis: 'Pertanyaan Klinis Kondisi Pasien',
@@ -24,7 +24,6 @@ const Questions = () => {
   const categories = Object.keys(categoryMapping);
   const currentCategory = categories[categoryIndex];
 
-  // Create axios instance with default config
   const api = axios.create({
     baseURL: API_BASE_URL,
     timeout: 15000,
@@ -32,9 +31,20 @@ const Questions = () => {
       'Accept': 'application/json',
       'Content-Type': 'application/json'
     },
-    // Add withCredentials if your backend supports credentials
     withCredentials: true
   });
+
+  api.interceptors.response.use(
+    response => response,
+    error => {
+      console.error('API Error:', error);
+      if (error.response?.status === 500) {
+        console.warn('Server error, falling back to local questions');
+        return Promise.resolve({ data: fallbackQuestions });
+      }
+      return Promise.reject(error);
+    }
+  );
 
   const fallbackQuestions = [
  
@@ -188,17 +198,7 @@ const Questions = () => {
     },
   ];
 
-  // Add response interceptor for error handling
-  api.interceptors.response.use(
-    response => response,
-    error => {
-      if (error.response?.status === 500) {
-        console.warn('Server error, falling back to local questions');
-        return Promise.resolve({ data: fallbackQuestions });
-      }
-      return Promise.reject(error);
-    }
-  );
+  
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -241,18 +241,17 @@ const Questions = () => {
     fetchQuestions();
   }, []);
 
-  // Handle form submission
-  const handleSubmit = async () => {
+ const handleSubmit = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // Validate required fields
-      if (!formData.weight || !formData.height || !formData.education) {
+      // Validate form data
+      if (!formData?.weight || !formData?.height || !formData?.education) {
         throw new Error('Mohon lengkapi data diri (berat badan, tinggi badan, dan pendidikan)');
       }
 
-      if (!formData.familyContact?.name || !formData.familyContact?.phone) {
+      if (!formData?.familyContact?.name || !formData?.familyContact?.phone) {
         throw new Error('Mohon lengkapi data kontak keluarga (minimal nama dan nomor telepon)');
       }
 
@@ -283,15 +282,23 @@ const Questions = () => {
       }
     } catch (error) {
       console.error('Submission error:', error);
-      setError(
-        error.message.includes('Mohon')
-          ? error.message
-          : 'Terjadi kesalahan saat mengirim data. Mohon coba lagi.'
-      );
+      
+      // More specific error handling
+      if (error.response?.data?.error) {
+        setError(error.response.data.error);
+      } else if (error.message.includes('Mohon')) {
+        setError(error.message);
+      } else {
+        setError('Terjadi kesalahan saat mengirim data. Mohon coba lagi.');
+      }
+      
+      // Scroll error into view
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setLoading(false);
     }
   };
+  
 
   const handleQuestionChange = (questionText, value) => {
     setFormData(prev => ({

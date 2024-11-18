@@ -1,36 +1,20 @@
-// index.js
 const express = require('express');
 const cors = require('cors');
 const { QuestionsService, UserService } = require('./services/supabaseClient');
 
 const app = express();
 
+// Add body parsing middleware - this was missing
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Simplified CORS configuration
 app.use(cors({
   origin: ['https://skrining-kesehatan-fe.vercel.app', 'http://localhost:3000'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
-
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  next();
-});
-
-
-
-
-app.options('*', (req, res) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.status(204).end();
-});
-
 
 // Get all questions
 app.get('/api/questions', async (req, res) => {
@@ -46,18 +30,38 @@ app.get('/api/questions', async (req, res) => {
   }
 });
 
-// Create new health screening
+// Create new health screening with improved validation
 app.post('/api/users', async (req, res) => {
   try {
     const { weight, height, education, familyContact, healthQuestions } = req.body;
 
+    // Enhanced validation
     if (!weight || !height || !education || !familyContact) {
-      return res.status(400).json({ error: 'Missing required fields' });
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        details: {
+          weight: !weight ? 'Weight is required' : null,
+          height: !height ? 'Height is required' : null,
+          education: !education ? 'Education is required' : null,
+          familyContact: !familyContact ? 'Family contact is required' : null
+        }
+      });
+    }
+
+    // Additional validation for family contact
+    if (!familyContact.name || !familyContact.phone) {
+      return res.status(400).json({
+        error: 'Incomplete family contact information',
+        details: {
+          name: !familyContact.name ? 'Family contact name is required' : null,
+          phone: !familyContact.phone ? 'Family contact phone is required' : null
+        }
+      });
     }
 
     const user = await UserService.createUser({
-      weight,
-      height,
+      weight: Number(weight),
+      height: Number(height),
       education,
       familyContact,
       healthQuestions
@@ -86,7 +90,11 @@ app.get('/api/users/:userId', async (req, res) => {
     }
     res.json(user);
   } catch (error) {
-    res.status(500).json({ error: 'Error fetching user data' });
+    console.error('Error fetching user:', error);
+    res.status(500).json({ 
+      error: 'Error fetching user data',
+      details: error.message 
+    });
   }
 });
 
@@ -96,7 +104,11 @@ app.get('/api/users', async (req, res) => {
     const users = await UserService.getAllUsers();
     res.json(users);
   } catch (error) {
-    res.status(500).json({ error: 'Error fetching users' });
+    console.error('Error fetching users:', error);
+    res.status(500).json({ 
+      error: 'Error fetching users',
+      details: error.message 
+    });
   }
 });
 

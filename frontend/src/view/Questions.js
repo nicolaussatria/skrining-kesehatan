@@ -13,7 +13,7 @@ const Questions = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://skrining-kesehatan-be.vercel.app';
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://skrining-kesehatan-be-git-main-nicos-projects-0cde7cf6.vercel.app';
 
   const categoryMapping = {
     klinis: 'Pertanyaan Klinis Kondisi Pasien',
@@ -233,33 +233,23 @@ const Questions = () => {
       setError(null);
       
       try {
-        // First try to get cached questions
-        const cachedQuestions = sessionStorage.getItem('cachedQuestions');
-        if (cachedQuestions) {
-          console.log('Using cached questions');
-          setQuestions(JSON.parse(cachedQuestions));
-          setFetching(false);
-          return;
-        }
-
-        // Log the full URL being called
         console.log('Fetching questions from:', `${API_BASE_URL}/api/questions`);
 
         // Make the API call
         const response = await api.get('/api/questions');
         
-        if (response.data) {
+        if (response.data && Array.isArray(response.data)) {
           console.log('Successfully fetched questions:', response.data);
           setQuestions(response.data);
-          // Cache the questions
           sessionStorage.setItem('cachedQuestions', JSON.stringify(response.data));
+        } else {
+          console.warn('Invalid response format, using fallback questions');
+          setQuestions(fallbackQuestions);
+          setError('Invalid data format from API. Using local questions.');
         }
       } catch (error) {
-        console.error('Error in fetchQuestions:', error);
-        // Fall back to local questions if API fails
+        console.error('Error fetching questions:', error);
         setQuestions(fallbackQuestions);
-        
-        // Show user-friendly error message with more detail
         setError(
           error.response?.status === 404 
             ? 'API endpoint tidak ditemukan. Menggunakan data lokal.' 
